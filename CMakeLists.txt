@@ -399,6 +399,11 @@ elseif(WITH_FREERTOS_LWIP)
 elseif(WITH_RPI_PICO)
   file (GLOB Sources_RPI_Pico "src/system/rpi_pico/*.c")
   list(APPEND Sources ${Sources_RPI_Pico})
+elseif(Z_SYSTEM_ARDUINO_GENERIC)
+  message(STATUS "Building with custom platform: arduino_generic")
+  list(APPEND Sources
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/system/arduino/generic/system.c
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/system/arduino/generic/network.cpp)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin" OR CMAKE_SYSTEM_NAME MATCHES "BSD" OR POSIX_COMPATIBLE)
   file (GLOB Sources_Unix "src/system/unix/*.c" "src/system/unix/link/*.c")
   list(APPEND Sources ${Sources_Unix})
