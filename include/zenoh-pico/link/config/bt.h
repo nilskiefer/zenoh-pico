@@ -25,6 +25,8 @@ extern "C" {
 
 #if Z_FEATURE_LINK_BLUETOOTH == 1
 
+#define BT_SCHEMA "bt"
+
 #define BT_CONFIG_ARGC 3
 
 #define BT_CONFIG_MODE_KEY 0x01

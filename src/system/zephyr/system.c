@@ -360,7 +360,7 @@ size_t _z_send_serial_internal(const _z_sys_net_socket_t sock, uint8_t header, c
     return len;
 }
 
-_z_sys_net_socket_t _z_open_serial_from_pins(uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
+z_result_t _z_open_serial_from_pins(_z_sys_net_socket_t *sock, uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
     // In Zephyr, serial is already configured via devicetree - pins are ignored
     (void)txpin;
     (void)rxpin;
@@ -368,38 +368,36 @@ _z_sys_net_socket_t _z_open_serial_from_pins(uint32_t txpin, uint32_t rxpin, uin
 
     _z_init_console_dev();
 
-    _z_sys_net_socket_t sock;
     if (console_dev == NULL || !device_is_ready(console_dev)) {
-        sock._serial = _Z_SYS_NET_SOCKET_INVALID;
+        sock->_serial = _Z_SYS_NET_SOCKET_INVALID;
+        return _Z_ERR_GENERIC;
     } else {
-        sock._serial = console_dev;
+        sock->_serial = console_dev;
+        return _Z_RES_OK;
     }
-
-    return sock;
 }
 
-_z_sys_net_socket_t _z_open_serial_from_dev(char *dev, uint32_t baudrate) {
+z_result_t _z_open_serial_from_dev(_z_sys_net_socket_t *sock, char *dev, uint32_t baudrate) {
     // In Zephyr, we use the devicetree console, ignore device name and baudrate
     (void)dev;
     (void)baudrate;
 
-    return _z_open_serial_from_pins(0, 0, baudrate);
+    return _z_open_serial_from_pins(sock, 0, 0, baudrate);
 }
 
-_z_sys_net_socket_t _z_listen_serial_from_pins(uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
+z_result_t _z_listen_serial_from_pins(_z_sys_net_socket_t *sock, uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
     // For serial, listen is the same as open in Zephyr
-    return _z_open_serial_from_pins(txpin, rxpin, baudrate);
+    return _z_open_serial_from_pins(sock, txpin, rxpin, baudrate);
 }
 
-_z_sys_net_socket_t _z_listen_serial_from_dev(char *dev, uint32_t baudrate) {
+z_result_t _z_listen_serial_from_dev(_z_sys_net_socket_t *sock, char *dev, uint32_t baudrate) {
     // For serial, listen is the same as open in Zephyr
-    return _z_open_serial_from_dev(dev, baudrate);
+    return _z_open_serial_from_dev(sock, dev, baudrate);
 }
 
-z_result_t _z_close_serial(_z_sys_net_socket_t sock) {
+void _z_close_serial(_z_sys_net_socket_t *sock) {
     // In Zephyr, console device is always available, nothing to close
     (void)sock;
-    return _Z_RES_OK;
 }
 
 #endif  // Z_FEATURE_LINK_SERIAL == 1

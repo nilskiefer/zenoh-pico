@@ -140,26 +140,34 @@ static z_result_t _z_open_inner(_z_session_rc_t *zs, _z_string_t *locator, const
 }
 
 z_result_t _z_open(_z_session_rc_t *zn, _z_config_t *config, const _z_id_t *zid) {
+    printf("DEBUG: _z_open started\n");
     z_result_t ret = _Z_RES_OK;
     _Z_RC_IN_VAL(zn)->_tp._type = _Z_TRANSPORT_NONE;
 
+    printf("DEBUG: Getting locators from config\n");
     int peer_op = _Z_PEER_OP_LISTEN;
     _z_string_svec_t locators = _z_string_svec_null();
     // Try getting locators from config
     _Z_RETURN_IF_ERR(_z_locators_by_config(config, &locators, &peer_op));
     size_t len = _z_string_svec_len(&locators);
+    printf("DEBUG: Found %zu locators\n", len);
 
     z_whatami_t mode;
+    printf("DEBUG: Getting config mode\n");
     ret = _z_config_get_mode(config, &mode);
     if (ret != _Z_RES_OK) {
+        printf("DEBUG: Failed to get config mode: %d\n", ret);
         return ret;
     }
+    printf("DEBUG: Mode set to %d\n", mode);
     _Z_RC_IN_VAL(zn)->_mode = mode;
 
     if (len > 0) {
         // Use first locator to open session
         _z_string_t *locator = _z_string_svec_get(&locators, 0);
+        printf("DEBUG: Opening transport with locator: %.*s\n", (int)_z_string_len(locator), _z_string_data(locator));
         ret = _z_open_inner(zn, locator, zid, peer_op);
+        printf("DEBUG: _z_open_inner returned: %d\n", ret);
 #if Z_FEATURE_UNICAST_PEER == 1
         // Add other locators as peers if applicable
         if ((ret == _Z_RES_OK) && (mode == Z_WHATAMI_PEER)) {

@@ -26,6 +26,8 @@ extern "C" {
 
 #if Z_FEATURE_LINK_SERIAL == 1
 
+#define SERIAL_SCHEMA "serial"
+
 #define SERIAL_CONFIG_ARGC 1
 
 #define SERIAL_CONFIG_BAUDRATE_KEY 0x01

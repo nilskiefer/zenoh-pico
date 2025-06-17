@@ -25,6 +25,8 @@ extern "C" {
 
 #if Z_FEATURE_LINK_TCP == 1
 
+#define TCP_SCHEMA "tcp"
+
 #define TCP_CONFIG_ARGC 1
 
 #define TCP_CONFIG_TOUT_KEY 0x01

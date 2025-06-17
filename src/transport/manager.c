@@ -24,12 +24,15 @@
 #include "zenoh-pico/transport/unicast/transport.h"
 
 static z_result_t _z_new_transport_client(_z_transport_t *zt, const _z_string_t *locator, const _z_id_t *local_zid) {
+    printf("DEBUG: _z_new_transport_client called\n");
     z_result_t ret = _Z_RES_OK;
     // Init link
     _z_link_t zl;
     memset(&zl, 0, sizeof(_z_link_t));
+    printf("DEBUG: About to open link\n");
     // Open link
     ret = _z_open_link(&zl, locator);
+    printf("DEBUG: _z_open_link returned %d\n", ret);
     if (ret != _Z_RES_OK) {
         return ret;
     }
@@ -131,14 +134,18 @@ static z_result_t _z_new_transport_peer(_z_transport_t *zt, const _z_string_t *l
 
 z_result_t _z_new_transport(_z_transport_t *zt, const _z_id_t *bs, const _z_string_t *locator, z_whatami_t mode,
                             int peer_op) {
+    printf("DEBUG: _z_new_transport called, mode=%d\n", mode);
     z_result_t ret;
 
     if (mode == Z_WHATAMI_CLIENT) {
+        printf("DEBUG: Creating client transport\n");
         ret = _z_new_transport_client(zt, locator, bs);
     } else {
+        printf("DEBUG: Creating peer transport\n");
         ret = _z_new_transport_peer(zt, locator, bs, peer_op);
     }
 
+    printf("DEBUG: _z_new_transport returning %d\n", ret);
     return ret;
 }
 

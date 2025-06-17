@@ -22,6 +22,8 @@
 extern "C" {
 #endif
 
+#define UDP_SCHEMA "udp"
+
 #define UDP_CONFIG_ARGC 3
 
 #define UDP_CONFIG_IFACE_KEY 0x01
