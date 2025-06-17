@@ -322,10 +322,12 @@ z_result_t _z_endpoint_config_from_string(_z_str_intmap_t *strint, const _z_stri
             return _z_ws_config_from_strn(strint, p_start, cfg_size);
         }
 #endif
+#if Z_FEATURE_RAWETH_TRANSPORT == 1
         cmp_str = _z_string_alias_str(RAWETH_SCHEMA);
         if (_z_string_equals(proto, &cmp_str)) {
             return _z_raweth_config_from_strn(strint, p_start, cfg_size);
         }
+#endif
     }
     return _Z_RES_OK;
 }

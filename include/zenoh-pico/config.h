@@ -17,8 +17,27 @@
 
 #ifdef ZENOH_GENERIC
 #include <zenoh_generic_config.h>
-#else
+#elif defined(ZENOH_ZEPHYR)
+// In Zephyr, use the Kconfig settings from CMake/Kconfig rather than overriding
+// The feature definitions are handled by the CMakeLists.txt configure_zenoh_feature function
+// But still need the basic configuration constants
+#define Z_FRAG_MAX_SIZE 4096
+#define Z_BATCH_UNICAST_SIZE 2048
+#define Z_BATCH_MULTICAST_SIZE 2048
+#define Z_CONFIG_SOCKET_TIMEOUT 100
+#define Z_TRANSPORT_LEASE 10000
 
+// Core features we need regardless of Kconfig settings
+#define Z_FEATURE_FRAGMENTATION 1
+#define Z_FEATURE_UNICAST_TRANSPORT 1
+#define Z_FEATURE_MULTICAST_TRANSPORT 1
+#define Z_FEATURE_ENCODING_VALUES 1
+#define Z_FEATURE_SESSION_CHECK 1
+#define Z_FEATURE_BATCHING 1
+#define Z_FEATURE_LIVELINESS 1
+#define Z_FEATURE_INTEREST 1
+#define Z_FEATURE_AUTO_RECONNECT 1
+#else
 /*--- CMake generated config; pass values to CMake to change the following tokens ---*/
 #define Z_FRAG_MAX_SIZE 4096
 #define Z_BATCH_UNICAST_SIZE 2048

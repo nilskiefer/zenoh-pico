@@ -28,6 +28,9 @@
 #include "zenoh-pico/config.h"
 #include "zenoh-pico/system/platform.h"
 
+// Zephyr-specific socket constants for serial transport
+#define _Z_SYS_NET_SOCKET_INVALID ((const struct device *)NULL)
+
 /*------------------ Random ------------------*/
 uint8_t z_random_u8(void) { return z_random_u32(); }
 
@@ -293,4 +296,186 @@ z_result_t _z_get_time_since_epoch(_z_time_since_epoch *t) {
     t->secs = now.tv_sec;
     t->nanos = now.tv_usec * 1000;
     return 0;
+}
+
+/*------------------ Serial ------------------*/
+#if Z_FEATURE_LINK_SERIAL == 1
+
+#include <zephyr/console/console.h>
+#include <zephyr/drivers/uart.h>
+
+// In Zephyr, we use the console device for serial communication
+static const struct device *console_dev = NULL;
+
+// Initialize console device reference
+static void _z_init_console_dev(void) {
+    if (console_dev == NULL) {
+        console_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    }
+}
+
+size_t _z_read_serial_internal(const _z_sys_net_socket_t sock, uint8_t *header, uint8_t *ptr, size_t len) {
+    (void)sock;  // Console device doesn't use socket parameter
+    _z_init_console_dev();
+
+    if (console_dev == NULL || !device_is_ready(console_dev)) {
+        return SIZE_MAX;
+    }
+
+    // For header+data protocol, read header first if needed
+    if (header != NULL) {
+        if (uart_poll_in(console_dev, header) < 0) {
+            return SIZE_MAX;
+        }
+    }
+
+    // Read data
+    for (size_t i = 0; i < len; i++) {
+        if (uart_poll_in(console_dev, &ptr[i]) < 0) {
+            return i;  // Return partial read count
+        }
+    }
+
+    return len;
+}
+
+size_t _z_send_serial_internal(const _z_sys_net_socket_t sock, uint8_t header, const uint8_t *ptr, size_t len) {
+    (void)sock;  // Console device doesn't use socket parameter
+    _z_init_console_dev();
+
+    if (console_dev == NULL || !device_is_ready(console_dev)) {
+        return SIZE_MAX;
+    }
+
+    // Send header if non-zero
+    if (header != 0) {
+        uart_poll_out(console_dev, header);
+    }
+
+    // Send data
+    for (size_t i = 0; i < len; i++) {
+        uart_poll_out(console_dev, ptr[i]);
+    }
+
+    return len;
+}
+
+_z_sys_net_socket_t _z_open_serial_from_pins(uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
+    // In Zephyr, serial is already configured via devicetree - pins are ignored
+    (void)txpin;
+    (void)rxpin;
+    (void)baudrate;
+
+    _z_init_console_dev();
+
+    _z_sys_net_socket_t sock;
+    if (console_dev == NULL || !device_is_ready(console_dev)) {
+        sock._serial = _Z_SYS_NET_SOCKET_INVALID;
+    } else {
+        sock._serial = console_dev;
+    }
+
+    return sock;
+}
+
+_z_sys_net_socket_t _z_open_serial_from_dev(char *dev, uint32_t baudrate) {
+    // In Zephyr, we use the devicetree console, ignore device name and baudrate
+    (void)dev;
+    (void)baudrate;
+
+    return _z_open_serial_from_pins(0, 0, baudrate);
+}
+
+_z_sys_net_socket_t _z_listen_serial_from_pins(uint32_t txpin, uint32_t rxpin, uint32_t baudrate) {
+    // For serial, listen is the same as open in Zephyr
+    return _z_open_serial_from_pins(txpin, rxpin, baudrate);
+}
+
+_z_sys_net_socket_t _z_listen_serial_from_dev(char *dev, uint32_t baudrate) {
+    // For serial, listen is the same as open in Zephyr
+    return _z_open_serial_from_dev(dev, baudrate);
+}
+
+z_result_t _z_close_serial(_z_sys_net_socket_t sock) {
+    // In Zephyr, console device is always available, nothing to close
+    (void)sock;
+    return _Z_RES_OK;
+}
+
+#endif  // Z_FEATURE_LINK_SERIAL == 1
+
+/*------------------ Network Stubs ------------------*/
+// These are stub implementations for functions that shouldn't be called
+// when networking features are disabled, but are referenced by core code
+
+#if Z_FEATURE_LINK_TCP == 0
+// TCP stubs - should not be called when TCP is disabled
+bool _z_endpoint_tcp_valid(const char *endpoint) {
+    (void)endpoint;
+    return false;
+}
+
+_z_sys_net_socket_t _z_new_link_tcp(const char *endpoint) {
+    (void)endpoint;
+    _z_sys_net_socket_t sock;
+    sock._serial = _Z_SYS_NET_SOCKET_INVALID;
+    return sock;
+}
+#endif
+
+#if Z_FEATURE_RAWETH_TRANSPORT == 0
+// Raw Ethernet stubs - should not be called when raweth is disabled
+bool _z_endpoint_raweth_valid(const char *endpoint) {
+    (void)endpoint;
+    return false;
+}
+
+_z_sys_net_socket_t _z_new_link_raweth(const char *endpoint) {
+    (void)endpoint;
+    _z_sys_net_socket_t sock;
+    sock._serial = _Z_SYS_NET_SOCKET_INVALID;
+    return sock;
+}
+
+z_result_t _z_raweth_send_n_msg(const _z_sys_net_socket_t sock, const void *msgs, size_t msg_count) {
+    (void)sock;
+    (void)msgs;
+    (void)msg_count;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+#endif
+
+// Multicast transport stubs - always available to prevent linker errors
+z_result_t _z_multicast_open_client(void *transport, const char *locator) {
+    (void)transport;
+    (void)locator;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+
+z_result_t _z_multicast_open_peer(void *transport, const char *locator) {
+    (void)transport;
+    (void)locator;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+
+z_result_t _z_multicast_transport_create(void *transport, const char *locator) {
+    (void)transport;
+    (void)locator;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+
+z_result_t _z_multicast_send_close(void *transport) {
+    (void)transport;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+
+z_result_t _z_multicast_transport_clear(void *transport) {
+    (void)transport;
+    return _Z_ERR_TRANSPORT_NOT_AVAILABLE;
+}
+
+// Socket close stub - for platforms that don't use real sockets
+void _z_socket_close(_z_sys_net_socket_t *sock) {
+    (void)sock;
+    // In Zephyr with serial transport, nothing to close
 }
